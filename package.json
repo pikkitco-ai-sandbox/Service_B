@@ -1,0 +1,14 @@
+{
+  "name": "@pikkitco/service-b",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A service in the pikkitco-ai-sandbox org. Currently in early development.",
+  "scripts": {
+    "opensrc:fetch": "npx opensrc",
+    "opensrc:list": "npx opensrc list"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pikkitco-ai-sandbox/Service_B.git"
+  }
+}

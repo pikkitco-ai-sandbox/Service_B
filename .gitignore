@@ -1,0 +1,30 @@
+# Node.js
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code (track commands + shared settings, ignore personal/transient)
+.claude/settings.local.json
+.claude/worktrees/
+
+# Secrets
+*.pem
+*.key
+secrets/
+
+# opensrc - source code for packages
+opensrc/
