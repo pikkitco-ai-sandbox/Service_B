@@ -13,6 +13,8 @@ Read this file before exploring any other files in this repository.
 | --- | --- |
 | Agent instructions | [`CLAUDE.md`](CLAUDE.md) |
 | Project overview | [`README.md`](README.md) |
+| Architecture decisions | [`docs/adr/`](docs/adr/) |
+| ADR template | [`docs/adr/0000-adr-template.md`](docs/adr/0000-adr-template.md) |
 | Cross-repo docs | `kb/docs/` (submodule) |
 | Shared glossary | `kb/docs/glossary.md` (submodule) |
 
