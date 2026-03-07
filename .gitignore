@@ -1,11 +1,23 @@
 # Node.js
 node_modules/
 package-lock.json
+dist/
+build/
+coverage/
+
+# Python (if added later)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Environment
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # IDE
 .idea/
@@ -16,6 +28,10 @@ package-lock.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+logs/
 
 # Claude Code (track commands + shared settings, ignore personal/transient)
 .claude/settings.local.json
