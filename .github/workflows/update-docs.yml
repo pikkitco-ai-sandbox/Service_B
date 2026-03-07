@@ -1,0 +1,73 @@
+name: Update Documentation
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update-docs:
+    name: Sync changed symbols to Documentation repo
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Service_B (with parent commit for diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Checkout Documentation repo
+        uses: actions/checkout@v4
+        with:
+          repository: pikkitco-ai-sandbox/Documentation
+          path: documentation-repo
+          token: ${{ secrets.DOCS_REPO_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run update_docs.py
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python documentation-repo/scripts/update_docs.py \
+            --service service-b \
+            --docs-path ./documentation-repo \
+            --output-json | tee update-report.json
+
+          python - <<'EOF'
+          import json, sys
+          r = json.load(open("update-report.json"))
+          print(f"Service       : {r['service']}")
+          print(f"Changed files : {r['changed_files']}")
+          print(f"Created stubs : {r['created_docs']}")
+          print(f"Skipped       : {r['skipped']}")
+          for err in r.get('errors', []):
+              print(f"WARN: {err}", file=sys.stderr)
+          EOF
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-docs-report-${{ github.run_id }}
+          path: update-report.json
+
+      - name: Open PR in Documentation repo
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.DOCS_REPO_PAT }}
+          path: documentation-repo
+          branch: docs/update-service-b-${{ github.run_id }}
+          title: "docs(service-b): sync from ${{ github.sha }}"
+          body: |
+            Automated documentation update triggered by merge to
+            `pikkitco-ai-sandbox/Service_B@${{ github.sha }}`.
+
+            Review any new stubs, fill in descriptions, and merge.
+          commit-message: "docs(service-b): sync stubs from ${{ github.sha }} [skip ci]"
+          labels: documentation,automated
+          delete-branch: true

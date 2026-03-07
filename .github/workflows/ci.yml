@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check internal markdown links
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const errors = [];
+
+            function findMarkdownFiles(dir) {
+              const files = [];
+              for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules' && entry.name !== 'opensrc') {
+                  files.push(...findMarkdownFiles(fullPath));
+                } else if (entry.isFile() && entry.name.endsWith('.md')) {
+                  files.push(fullPath);
+                }
+              }
+              return files;
+            }
+
+            const mdFiles = findMarkdownFiles('.');
+            console.log(`Found ${mdFiles.length} markdown files`);
+
+            for (const file of mdFiles) {
+              const content = fs.readFileSync(file, 'utf8');
+              const linkRegex = /\[([^\]]*)\]\(([^)]+)\)/g;
+              let match;
+              while ((match = linkRegex.exec(content)) !== null) {
+                const href = match[2];
+                if (href.startsWith('http') || href.startsWith('#') || href.includes('<')) continue;
+                const targetPath = path.resolve(path.dirname(file), href.split('#')[0]);
+                if (!fs.existsSync(targetPath)) {
+                  errors.push(`${file}: broken link [${match[1]}](${href})`);
+                }
+              }
+            }
+
+            if (errors.length > 0) {
+              console.log('\n--- Broken Links ---');
+              for (const err of errors) console.log(`  - ${err}`);
+              core.setFailed(`Found ${errors.length} broken link(s)`);
+            } else {
+              console.log('All internal links are valid.');
+            }

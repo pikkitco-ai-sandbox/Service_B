@@ -1,0 +1,44 @@
+name: Doc Lint
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  doc-lint:
+    name: Enforce documentation coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Service_B
+        uses: actions/checkout@v4
+
+      - name: Checkout Documentation repo
+        uses: actions/checkout@v4
+        with:
+          repository: pikkitco-ai-sandbox/Documentation
+          path: documentation-repo
+          token: ${{ secrets.DOCS_REPO_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run doc_lint.py
+        run: |
+          python documentation-repo/scripts/doc_lint.py \
+            --service-path . \
+            --docs-path ./documentation-repo \
+            --output-json | tee doc-lint-report.json
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-lint-report-${{ github.run_id }}
+          path: doc-lint-report.json
