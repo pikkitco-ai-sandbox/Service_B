@@ -2,7 +2,7 @@
   "name": "@pikkitco/service-b",
   "version": "1.0.0",
   "private": true,
-  "description": "A service in the pikkitco-ai-sandbox org. Currently in early development.",
+  "description": "Chat gateway and Slack agent service. Bridges Slack events to Python backend orchestrators via standardized HTTP API.",
   "scripts": {
     "opensrc:fetch": "npx opensrc",
     "opensrc:list": "npx opensrc list"
