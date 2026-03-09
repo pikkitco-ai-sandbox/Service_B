@@ -31,6 +31,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
+  // Feature gate — when disabled, acknowledge but do nothing
+  if (process.env.NEW_CHAT_LAYER_ENABLED !== "true") {
+    return NextResponse.json({ ok: true });
+  }
+
   // Interaction payloads arrive as URL-encoded `payload` field
   const params = new URLSearchParams(rawBody);
   const payloadStr = params.get("payload");

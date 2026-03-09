@@ -26,6 +26,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
+  // Feature gate — when disabled, respond with "not ready"
+  if (process.env.NEW_CHAT_LAYER_ENABLED !== "true") {
+    return NextResponse.json({
+      response_type: "ephemeral",
+      text: "This command is not yet active. The new chat layer is being rolled out.",
+    });
+  }
+
   const params = new URLSearchParams(rawBody);
   const parsed = parseSlashCommand(params);
   const workflow = routeCommand(parsed.command);

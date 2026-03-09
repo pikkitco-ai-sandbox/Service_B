@@ -32,6 +32,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ challenge: body.challenge });
   }
 
+  // Feature gate — when disabled, acknowledge but do nothing
+  if (process.env.NEW_CHAT_LAYER_ENABLED !== "true") {
+    return NextResponse.json({ ok: true });
+  }
+
   // Event callback
   if (body.type === "event_callback" && body.event?.type === "app_mention") {
     // Respond immediately, process async

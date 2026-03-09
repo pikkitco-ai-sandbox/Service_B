@@ -3,8 +3,8 @@
 Standardized HTTP contract that both Python backends (Dummy_Agent, Mislink_Agent) expose
 so that Service_B can call them uniformly.
 
-**Version:** 1.0.0-draft
-**Status:** Defined, implementation in progress
+**Version:** 1.0.0
+**Status:** Implemented
 
 ## Design Principles
 
@@ -13,6 +13,18 @@ so that Service_B can call them uniformly.
 3. **Slack-agnostic** — the backend contract uses `source`, `thread_id`, `user_id` instead
    of Slack-specific field names. Service_B translates Slack concepts to these generic fields.
 4. **Error consistency** — all errors use `{ ok: false, error, message }`
+
+---
+
+## Endpoint Prefixes
+
+| Backend | Prefix | Example |
+| --- | --- | --- |
+| Dummy_Agent | `/api/` | `POST /api/process` |
+| Mislink_Agent | `/api/gateway/` | `POST /api/gateway/process` |
+
+Mislink_Agent uses the `/api/gateway/` prefix to avoid conflicting with its existing `/api/*` endpoints.
+Service_B's backend client handles this routing transparently.
 
 ---
 
