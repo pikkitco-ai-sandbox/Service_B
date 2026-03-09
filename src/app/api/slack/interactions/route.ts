@@ -13,6 +13,7 @@ import { getSlackClient } from "@/lib/slack/client";
 import { buildDecisionResult, buildErrorCard } from "@/lib/slack/blocks";
 import type { ActionPayload } from "@/lib/slack/blocks";
 import { getStateAdapter } from "@/lib/state";
+import { logInfo, logWarn, logError } from "@/lib/log";
 import type { GatewayDecisionResponse, GatewayErrorResponse } from "@/lib/contracts/gateway";
 
 const ACTION_MAP: Record<string, "approve" | "reject" | "modify"> = {
@@ -28,11 +29,13 @@ export async function POST(request: NextRequest) {
   const signingSecret = process.env.SLACK_SIGNING_SECRET || "";
 
   if (signingSecret && !verifySlackRequest(signingSecret, timestamp, rawBody, signature)) {
+    logWarn("signature_failed", { source: "interaction" });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
   // Feature gate — when disabled, acknowledge but do nothing
   if (process.env.NEW_CHAT_LAYER_ENABLED !== "true") {
+    logInfo("gate_disabled", { source: "interaction" });
     return NextResponse.json({ ok: true });
   }
 
@@ -46,7 +49,9 @@ export async function POST(request: NextRequest) {
   const payload = JSON.parse(payloadStr);
 
   if (payload.type === "block_actions") {
-    handleBlockAction(payload).catch(console.error);
+    handleBlockAction(payload).catch((err) =>
+      logError("interaction_handler_failed", { source: "interaction", error: String(err) }),
+    );
     return NextResponse.json({ ok: true });
   }
 
@@ -70,12 +75,23 @@ async function handleBlockAction(payload: Record<string, unknown>) {
   const userId = user?.id || "";
   const channelId = channel?.id || "";
   const messageTs = message?.ts || "";
+  const mode = process.env.CHAT_BACKEND_MODE || "mock";
+
+  logInfo("interaction_received", {
+    source: "interaction",
+    action: decision,
+    workflow: actionPayload.workflow,
+    run_id: actionPayload.run_id,
+    ticket_id: actionPayload.ticket_id,
+    mode,
+  });
 
   const slack = getSlackClient();
 
   // Mock mode
-  if (process.env.CHAT_BACKEND_MODE === "mock") {
+  if (mode === "mock") {
     const mockStatus = decision === "approve" ? "approved" : decision === "reject" ? "rejected" : "modified";
+    logInfo("mock_response", { source: "interaction", action: decision, run_id: actionPayload.run_id });
     await slack.chat.postMessage({
       channel: channelId,
       thread_ts: messageTs,
@@ -101,6 +117,12 @@ async function handleBlockAction(payload: Record<string, unknown>) {
 
   if (!result.ok) {
     const err = result as GatewayErrorResponse;
+    logError("decision_failed", {
+      source: "interaction",
+      action: decision,
+      run_id: actionPayload.run_id,
+      error: err.error,
+    });
     await slack.chat.postMessage({
       channel: channelId,
       thread_ts: messageTs,
@@ -111,6 +133,12 @@ async function handleBlockAction(payload: Record<string, unknown>) {
   }
 
   const success = result as GatewayDecisionResponse;
+  logInfo("decision_success", {
+    source: "interaction",
+    action: decision,
+    workflow: success.workflow,
+    run_id: success.run_id,
+  });
 
   // Update local state
   const state = getStateAdapter();

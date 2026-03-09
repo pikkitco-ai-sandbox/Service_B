@@ -19,6 +19,8 @@ stays in the Python repos. This service is a thin translation layer.
 | `CLAUDE.md` | Agent instructions (this file) | Yes |
 | `AGENTS.md` | Navigation guide for AI agents | Yes |
 | `README.md` | Project overview and setup | Yes |
+| `TESTING.md` | Mock and live Slack test procedures | Yes |
+| `OPERATIONS.md` | Deployment, rollback, cutover, failure modes | Yes |
 | `contracts/api-contract.md` | Backend API contract specification | Yes (coordinate with Python repos) |
 | `.env.example` | Environment variable template | Yes |
 | `src/app/api/slack/events/route.ts` | app_mention event handler | Yes |
@@ -32,6 +34,7 @@ stays in the Python repos. This service is a thin translation layer.
 | `src/lib/slack/parse.ts` | Event/command parsing | Yes |
 | `src/lib/slack/blocks.ts` | Block Kit card builders | Yes |
 | `src/lib/slack/client.ts` | Slack WebClient singleton | Yes |
+| `src/lib/log.ts` | Structured JSON logger (never logs secrets) | Yes |
 | `src/lib/state/` | State adapter (memory + Redis) | Yes |
 | `tests/` | Vitest tests for routing, parsing, contracts, actions | Yes |
 | `kb/` | Documentation submodule (read-only ref) | No -- update via Documentation repo |
@@ -103,6 +106,18 @@ CHAT_BACKEND_MODE=mock npm run dev  # mock mode (no backends needed)
 npm test             # all tests
 npm run test:watch   # watch mode
 ```
+
+See `TESTING.md` for Slack integration test procedures (mock and live mode).
+
+## Logging
+
+All route handlers emit structured JSON logs via `src/lib/log.ts`. Logs include:
+`source` (event/command/interaction), `workflow`, `mode` (mock/live), `ticket_id`, `run_id`.
+Backend client logs `backend_url`, `status_code`, `duration_ms`.
+
+**Never log secrets.** The logger does not have access to tokens or signing secrets.
+
+See `OPERATIONS.md` for how to view logs in Vercel.
 
 ## Documentation System
 

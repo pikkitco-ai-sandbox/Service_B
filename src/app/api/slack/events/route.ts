@@ -13,6 +13,7 @@ import { processTicket } from "@/lib/backend/client";
 import { getSlackClient } from "@/lib/slack/client";
 import { buildApprovalCard, buildErrorCard } from "@/lib/slack/blocks";
 import { getStateAdapter } from "@/lib/state";
+import { logInfo, logWarn, logError } from "@/lib/log";
 import type { GatewayProcessResponse, GatewayErrorResponse } from "@/lib/contracts/gateway";
 
 export async function POST(request: NextRequest) {
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
   const signingSecret = process.env.SLACK_SIGNING_SECRET || "";
 
   if (signingSecret && !verifySlackRequest(signingSecret, timestamp, rawBody, signature)) {
+    logWarn("signature_failed", { source: "event" });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
@@ -29,18 +31,22 @@ export async function POST(request: NextRequest) {
 
   // URL verification challenge
   if (body.type === "url_verification") {
+    logInfo("url_verification", { source: "event" });
     return NextResponse.json({ challenge: body.challenge });
   }
 
   // Feature gate — when disabled, acknowledge but do nothing
   if (process.env.NEW_CHAT_LAYER_ENABLED !== "true") {
+    logInfo("gate_disabled", { source: "event" });
     return NextResponse.json({ ok: true });
   }
 
   // Event callback
   if (body.type === "event_callback" && body.event?.type === "app_mention") {
     // Respond immediately, process async
-    handleMention(body.event).catch(console.error);
+    handleMention(body.event).catch((err) =>
+      logError("mention_handler_failed", { source: "event", error: String(err) }),
+    );
     return NextResponse.json({ ok: true });
   }
 
@@ -49,9 +55,18 @@ export async function POST(request: NextRequest) {
 
 async function handleMention(event: Record<string, unknown>) {
   const parsed = parseMention(event);
+  const mode = process.env.CHAT_BACKEND_MODE || "mock";
   const slack = getSlackClient();
 
+  logInfo("mention_received", {
+    source: "event",
+    workflow: parsed.workflow,
+    ticket_id: parsed.ticket_id || undefined,
+    mode,
+  });
+
   if (!parsed.ticket_id) {
+    logWarn("missing_ticket_id", { source: "event" });
     await slack.chat.postMessage({
       channel: parsed.channel_id,
       thread_ts: parsed.thread_ts,
@@ -61,7 +76,8 @@ async function handleMention(event: Record<string, unknown>) {
   }
 
   // Mock mode
-  if (process.env.CHAT_BACKEND_MODE === "mock") {
+  if (mode === "mock") {
+    logInfo("mock_response", { source: "event", workflow: parsed.workflow, ticket_id: parsed.ticket_id });
     await slack.chat.postMessage({
       channel: parsed.channel_id,
       thread_ts: parsed.thread_ts,
@@ -80,6 +96,7 @@ async function handleMention(event: Record<string, unknown>) {
 
   if (!result.ok) {
     const err = result as GatewayErrorResponse;
+    logError("process_failed", { source: "event", workflow: parsed.workflow, ticket_id: parsed.ticket_id, error: err.error });
     await slack.chat.postMessage({
       channel: parsed.channel_id,
       thread_ts: parsed.thread_ts,
@@ -90,6 +107,12 @@ async function handleMention(event: Record<string, unknown>) {
   }
 
   const success = result as GatewayProcessResponse;
+  logInfo("process_success", {
+    source: "event",
+    workflow: success.workflow,
+    ticket_id: parsed.ticket_id,
+    run_id: success.run_id,
+  });
 
   // Save context so action handlers can route decisions
   const state = getStateAdapter();

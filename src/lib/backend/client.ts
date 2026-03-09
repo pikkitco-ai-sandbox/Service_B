@@ -14,6 +14,7 @@ import type {
   GatewayErrorResponse,
   GatewayResult,
 } from "../contracts/gateway";
+import { logInfo, logError } from "../log";
 
 function getBaseUrl(workflow: string): string {
   if (workflow === "mislink") {
@@ -37,6 +38,7 @@ function getRunPath(workflow: string, runId: string): string {
 }
 
 async function callBackend<T>(url: string, init?: RequestInit): Promise<GatewayResult<T>> {
+  const start = Date.now();
   try {
     const resp = await fetch(url, {
       ...init,
@@ -47,6 +49,14 @@ async function callBackend<T>(url: string, init?: RequestInit): Promise<GatewayR
     });
 
     const data = await resp.json();
+    const duration = Date.now() - start;
+
+    logInfo("backend_response", {
+      source: "backend",
+      backend_url: url,
+      status_code: resp.status,
+      duration_ms: duration,
+    });
 
     if (!resp.ok && data.ok === undefined) {
       return {
@@ -58,6 +68,13 @@ async function callBackend<T>(url: string, init?: RequestInit): Promise<GatewayR
 
     return data;
   } catch (err) {
+    const duration = Date.now() - start;
+    logError("backend_unreachable", {
+      source: "backend",
+      backend_url: url,
+      duration_ms: duration,
+      error: err instanceof Error ? err.message : "unknown",
+    });
     return {
       ok: false,
       error: "backend_unreachable",
