@@ -22,12 +22,20 @@ export async function POST(request: NextRequest) {
   const signature = request.headers.get("x-slack-signature") || "";
   const signingSecret = process.env.SLACK_SIGNING_SECRET || "";
 
-  if (signingSecret && !verifySlackRequest(signingSecret, timestamp, rawBody, signature)) {
+  if (!signingSecret) {
+    logWarn("signature_skipped", { source: "event" });
+  } else if (!verifySlackRequest(signingSecret, timestamp, rawBody, signature)) {
     logWarn("signature_failed", { source: "event" });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
-  const body = JSON.parse(rawBody);
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    logError("invalid_json", { source: "event" });
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
 
   // URL verification challenge
   if (body.type === "url_verification") {
@@ -42,9 +50,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Event callback
-  if (body.type === "event_callback" && body.event?.type === "app_mention") {
+  const event = body.event as Record<string, unknown> | undefined;
+  if (body.type === "event_callback" && event?.type === "app_mention") {
     // Respond immediately, process async
-    handleMention(body.event).catch((err) =>
+    handleMention(event).catch((err) =>
       logError("mention_handler_failed", { source: "event", error: String(err) }),
     );
     return NextResponse.json({ ok: true });

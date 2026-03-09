@@ -28,7 +28,9 @@ export async function POST(request: NextRequest) {
   const signature = request.headers.get("x-slack-signature") || "";
   const signingSecret = process.env.SLACK_SIGNING_SECRET || "";
 
-  if (signingSecret && !verifySlackRequest(signingSecret, timestamp, rawBody, signature)) {
+  if (!signingSecret) {
+    logWarn("signature_skipped", { source: "interaction" });
+  } else if (!verifySlackRequest(signingSecret, timestamp, rawBody, signature)) {
     logWarn("signature_failed", { source: "interaction" });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
@@ -46,7 +48,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "missing_payload" }, { status: 400 });
   }
 
-  const payload = JSON.parse(payloadStr);
+  let payload: Record<string, unknown>;
+  try {
+    payload = JSON.parse(payloadStr);
+  } catch {
+    logError("invalid_json", { source: "interaction" });
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
 
   if (payload.type === "block_actions") {
     handleBlockAction(payload).catch((err) =>
@@ -67,7 +75,14 @@ async function handleBlockAction(payload: Record<string, unknown>) {
   const decision = ACTION_MAP[actionId];
   if (!decision) return;
 
-  const actionPayload: ActionPayload = JSON.parse(String(action.value || "{}"));
+  let actionPayload: ActionPayload;
+  try {
+    actionPayload = JSON.parse(String(action.value || "{}"));
+  } catch {
+    logError("invalid_action_payload", { source: "interaction" });
+    return;
+  }
+
   const user = payload.user as Record<string, string> | undefined;
   const channel = payload.channel as Record<string, string> | undefined;
   const message = payload.message as Record<string, string> | undefined;
@@ -140,7 +155,7 @@ async function handleBlockAction(payload: Record<string, unknown>) {
     run_id: success.run_id,
   });
 
-  // Update local state
+  // Update local state (no-op on Vercel without Redis — serverless functions don't share memory)
   const state = getStateAdapter();
   const ctx = await state.get(actionPayload.run_id);
   if (ctx) {
