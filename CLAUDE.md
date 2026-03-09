@@ -21,10 +21,19 @@ stays in the Python repos. This service is a thin translation layer.
 | `README.md` | Project overview and setup | Yes |
 | `contracts/api-contract.md` | Backend API contract specification | Yes (coordinate with Python repos) |
 | `.env.example` | Environment variable template | Yes |
-| `handlers/` | Slack event handlers (future) | Yes |
-| `lib/` | Shared utilities (future) | Yes |
-| `src/` | Application source (scaffolded, future) | Yes |
-| `tests/` | Test suite (future) | Yes |
+| `src/app/api/slack/events/route.ts` | app_mention event handler | Yes |
+| `src/app/api/slack/commands/route.ts` | Slash command handler (/mislink, /support) | Yes |
+| `src/app/api/slack/interactions/route.ts` | Button action handler (approve/reject/modify) | Yes |
+| `src/app/api/health/route.ts` | Health check endpoint | Yes |
+| `src/lib/contracts/gateway.ts` | TypeScript contract types matching Python backends | Yes |
+| `src/lib/backend/client.ts` | HTTP client for Python backends | Yes |
+| `src/lib/backend/router.ts` | Workflow routing (command + keyword inference) | Yes |
+| `src/lib/slack/verify.ts` | Slack request signature verification | Yes |
+| `src/lib/slack/parse.ts` | Event/command parsing | Yes |
+| `src/lib/slack/blocks.ts` | Block Kit card builders | Yes |
+| `src/lib/slack/client.ts` | Slack WebClient singleton | Yes |
+| `src/lib/state/` | State adapter (memory + Redis) | Yes |
+| `tests/` | Vitest tests for routing, parsing, contracts, actions | Yes |
 | `kb/` | Documentation submodule (read-only ref) | No -- update via Documentation repo |
 | `opensrc/` | Cached dependency source code | No -- managed by opensrc CLI |
 
@@ -36,8 +45,7 @@ stays in the Python repos. This service is a thin translation layer.
 4. **No pipeline logic** -- classification, analysis, solving, execution belong in Python repos
 5. **Contract changes require coordination** -- if you change `contracts/api-contract.md`,
    both Python backends must be updated to match
-6. **Do not hardcode SDK packages** -- the Slack agent template scaffold determines exact
-   package names and framework. Use placeholder references until scaffold is generated.
+6. **Framework: Next.js 14 with App Router. Slack SDK: @slack/web-api. Test runner: vitest.**
 
 ## Backend API Contract
 
@@ -50,6 +58,15 @@ Both Python backends expose a uniform HTTP API:
 | `GET /api/runs/{run_id}` | Retrieve run details |
 
 See `contracts/api-contract.md` for full request/response schemas.
+
+## Slack Routes
+
+| Route | Purpose |
+| --- | --- |
+| `/api/slack/events` | Event Subscriptions (app_mention) |
+| `/api/slack/commands` | Slash commands (/mislink, /support) |
+| `/api/slack/interactions` | Interactive components (button clicks) |
+| `/api/health` | Health check |
 
 ## Environment
 
@@ -67,8 +84,25 @@ cp .env.example .env
 | `DUMMY_AGENT_BASE_URL` | Yes | Base URL of Dummy_Agent API |
 | `MISLINK_AGENT_BASE_URL` | Yes | Base URL of Mislink_Agent API |
 | `CHAT_BACKEND_MODE` | No | `live` or `mock` (default: `mock`) |
+| `NEW_CHAT_LAYER_ENABLED` | No | `true` enables new chat layer routing |
 | `LEGACY_SLACK_ENABLED` | No | `true` keeps legacy Slack paths in Python repos |
 | `DOCS_REPO_PAT` | CI only | Fine-grained PAT for cross-repo doc PRs |
+
+## Local Development
+
+```bash
+npm install
+npm run dev          # starts Next.js dev server on :3000
+npm test             # run vitest
+CHAT_BACKEND_MODE=mock npm run dev  # mock mode (no backends needed)
+```
+
+## Testing
+
+```bash
+npm test             # all tests
+npm run test:watch   # watch mode
+```
 
 ## Documentation System
 

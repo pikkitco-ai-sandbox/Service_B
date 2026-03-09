@@ -4,6 +4,8 @@ package-lock.json
 dist/
 build/
 coverage/
+.next/
+next-env.d.ts
 
 # Python (if added later)
 __pycache__/
@@ -44,3 +46,5 @@ secrets/
 
 # opensrc - source code for packages
 opensrc/
+
+.vercel
