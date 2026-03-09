@@ -11,6 +11,8 @@ Sits between Slack and the Python backend orchestrators (Dummy_Agent, Mislink_Ag
 **Service_B does NOT contain pipeline logic.** It translates Slack events into backend API
 calls and renders backend responses as interactive Slack cards.
 
+**Stack:** Next.js 14 (App Router), @slack/web-api, Vitest, Vercel.
+
 ## Navigation Map
 
 | What you need | Where to look |
@@ -19,33 +21,47 @@ calls and renders backend responses as interactive Slack cards.
 | Project overview | [`README.md`](README.md) |
 | API contract specification | [`contracts/api-contract.md`](contracts/api-contract.md) |
 | Environment variables | [`.env.example`](.env.example) |
-| Event handlers (future) | `handlers/` |
-| Shared utilities (future) | `lib/` |
+| Slack event handler | [`src/app/api/slack/events/route.ts`](src/app/api/slack/events/route.ts) |
+| Slash command handler | [`src/app/api/slack/commands/route.ts`](src/app/api/slack/commands/route.ts) |
+| Button action handler | [`src/app/api/slack/interactions/route.ts`](src/app/api/slack/interactions/route.ts) |
+| Health check | [`src/app/api/health/route.ts`](src/app/api/health/route.ts) |
+| Backend HTTP client | [`src/lib/backend/client.ts`](src/lib/backend/client.ts) |
+| Workflow routing | [`src/lib/backend/router.ts`](src/lib/backend/router.ts) |
+| Contract types | [`src/lib/contracts/gateway.ts`](src/lib/contracts/gateway.ts) |
+| Block Kit cards | [`src/lib/slack/blocks.ts`](src/lib/slack/blocks.ts) |
+| Slack client | [`src/lib/slack/client.ts`](src/lib/slack/client.ts) |
+| Request parsing | [`src/lib/slack/parse.ts`](src/lib/slack/parse.ts) |
+| Signature verification | [`src/lib/slack/verify.ts`](src/lib/slack/verify.ts) |
+| State adapters | [`src/lib/state/`](src/lib/state/) |
+| Tests | [`tests/`](tests/) |
 | Architecture decisions | [`docs/adr/`](docs/adr/) |
-| ADR template | [`docs/adr/0000-adr-template.md`](docs/adr/0000-adr-template.md) |
 | Cross-repo docs | `kb/docs/` (submodule) |
 | Shared glossary | `kb/docs/glossary.md` (submodule) |
 
 ## Service Architecture
 
 ```text
-Slack events --> handlers/     (translate Slack events to API calls)
-                    |
-                    v
-                 lib/          (HTTP client, card builders)
-                    |
-                    v
-          Python backends      (Dummy_Agent or Mislink_Agent)
-          via standardized     POST /api/process
-          HTTP contract        POST /api/decision
-                               GET  /api/runs/{run_id}
+Slack events ──> src/app/api/slack/
+                     ├── events/route.ts      (app_mention → parse → backend → card)
+                     ├── commands/route.ts     (slash commands → route → backend → card)
+                     └── interactions/route.ts (button clicks → decision → result)
+                            |
+                            v
+                      src/lib/backend/
+                     ├── router.ts             (workflow selection)
+                     └── client.ts             (HTTP calls to Python backends)
+                            |
+                            v
+                      Python backends
+                     ├── Dummy_Agent    POST /api/process, /api/decision
+                     └── Mislink_Agent  POST /api/gateway/process, /api/gateway/decision
 ```
 
 ## Ownership Boundaries
 
 | Layer | Owner | What lives here |
 | --- | --- | --- |
-| Slack interaction | Service_B | Event handlers, card rendering, state adapter |
+| Slack interaction | Service_B | Route handlers, card rendering, state adapter |
 | Backend API contract | Shared | `contracts/api-contract.md` defines the interface |
 | Pipeline logic | Python repos | Classification, analysis, solving, execution |
 
@@ -58,12 +74,6 @@ Slack events --> handlers/     (translate Slack events to API calls)
    it belongs in Dummy_Agent or Mislink_Agent instead
 5. **Contract changes require coordination** — updating `contracts/api-contract.md` means
    updating the Python backends too
-
-## Package Manager Note
-
-The exact package manager (npm, pnpm, bun) and framework packages will be determined by
-the Slack agent template scaffold. Do not hardcode specific SDK package names until the
-scaffold is generated.
 
 ## Cross-Repo Navigation (Submodule)
 
