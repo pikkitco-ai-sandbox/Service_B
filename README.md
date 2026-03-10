@@ -30,6 +30,7 @@ Slack and the backends.
 
 - **Framework:** Next.js 14 (App Router)
 - **Slack SDK:** @slack/web-api (WebClient only — no Bolt, compatible with Vercel serverless)
+- **Serverless:** @vercel/functions (`waitUntil` keeps functions alive for async Slack follow-ups)
 - **Tests:** Vitest
 - **Deploy:** Vercel (`https://pikkit-service-b.vercel.app`)
 

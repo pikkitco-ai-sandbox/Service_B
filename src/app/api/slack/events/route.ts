@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { verifySlackRequest } from "@/lib/slack/verify";
 import { parseMention } from "@/lib/slack/parse";
 import { processTicket } from "@/lib/backend/client";
@@ -52,9 +53,11 @@ export async function POST(request: NextRequest) {
   // Event callback
   const event = body.event as Record<string, unknown> | undefined;
   if (body.type === "event_callback" && event?.type === "app_mention") {
-    // Respond immediately, process async
-    handleMention(event).catch((err) =>
-      logError("mention_handler_failed", { source: "event", error: String(err) }),
+    // Respond immediately, keep function alive for async work
+    waitUntil(
+      handleMention(event).catch((err) =>
+        logError("mention_handler_failed", { source: "event", error: String(err) }),
+      ),
     );
     return NextResponse.json({ ok: true });
   }

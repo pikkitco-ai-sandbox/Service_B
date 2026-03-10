@@ -24,6 +24,11 @@ Slack workspace
 
 Service_B is a stateless serverless gateway. It does NOT contain pipeline logic.
 
+All three Slack routes use `waitUntil()` from `@vercel/functions` to keep the serverless
+function alive after sending the immediate Slack acknowledgment. Without this, Vercel
+terminates the function before async follow-up work (backend calls, `chat.postMessage`)
+can complete.
+
 ---
 
 ## Routes
@@ -184,6 +189,7 @@ curl https://pikkit-service-b.vercel.app/api/health
 | `:warning: Error: backend_http_error` | Backend returned non-200 | Check backend logs. Backend may be misconfigured or ticket not found. |
 | Slash command shows "not yet active" | `NEW_CHAT_LAYER_ENABLED` not `true` | Set to `true` and redeploy |
 | "Please include a ticket ID" | User didn't include a pattern like `ENG-12345` | Must match `/[A-Z]+-\d+/` (e.g., ENG-12345, FAKE-001) |
+| Bot sends ack but no follow-up message | `waitUntil()` missing — Vercel kills function before async work completes | Ensure all fire-and-forget handlers are wrapped in `waitUntil()` from `@vercel/functions` |
 | Buttons don't appear | Only happens in mock mode | Switch to `CHAT_BACKEND_MODE=live` — mock mode posts text, not cards |
 | Vercel build fails | Missing `vercel.json` or framework not detected | Ensure `vercel.json` has `{"framework":"nextjs"}` |
 | `SLACK_BOT_TOKEN is required` | Missing env var | Add `SLACK_BOT_TOKEN` to Vercel env vars |
