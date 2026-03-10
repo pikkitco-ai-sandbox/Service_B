@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { verifySlackRequest } from "@/lib/slack/verify";
 import { parseSlashCommand } from "@/lib/slack/parse";
 import { routeCommand } from "@/lib/backend/router";
@@ -60,9 +61,11 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Acknowledge immediately, process async
-  handleCommand(parsed, workflow).catch((err) =>
-    logError("command_handler_failed", { source: "command", error: String(err) }),
+  // Acknowledge immediately, keep function alive for async work
+  waitUntil(
+    handleCommand(parsed, workflow).catch((err) =>
+      logError("command_handler_failed", { source: "command", error: String(err) }),
+    ),
   );
 
   return NextResponse.json({

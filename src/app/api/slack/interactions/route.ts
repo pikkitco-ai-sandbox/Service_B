@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { verifySlackRequest } from "@/lib/slack/verify";
 import { submitDecision } from "@/lib/backend/client";
 import { getSlackClient } from "@/lib/slack/client";
@@ -57,8 +58,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (payload.type === "block_actions") {
-    handleBlockAction(payload).catch((err) =>
-      logError("interaction_handler_failed", { source: "interaction", error: String(err) }),
+    waitUntil(
+      handleBlockAction(payload).catch((err) =>
+        logError("interaction_handler_failed", { source: "interaction", error: String(err) }),
+      ),
     );
     return NextResponse.json({ ok: true });
   }
