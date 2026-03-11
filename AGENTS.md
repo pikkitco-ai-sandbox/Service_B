@@ -32,6 +32,7 @@ calls and renders backend responses as interactive Slack cards.
 | Slack client | [`src/lib/slack/client.ts`](src/lib/slack/client.ts) |
 | Request parsing | [`src/lib/slack/parse.ts`](src/lib/slack/parse.ts) |
 | Signature verification | [`src/lib/slack/verify.ts`](src/lib/slack/verify.ts) |
+| Memory context middleware | [`src/lib/memory/context.ts`](src/lib/memory/context.ts) |
 | State adapters | [`src/lib/state/`](src/lib/state/) |
 | Tests | [`tests/`](tests/) |
 | Architecture decisions | [`docs/adr/`](docs/adr/) |

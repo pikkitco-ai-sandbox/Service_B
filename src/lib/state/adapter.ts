@@ -22,4 +22,5 @@ export interface StateAdapter {
   save(runId: string, context: RunContext): Promise<void>;
   get(runId: string): Promise<RunContext | null>;
   delete(runId: string): Promise<void>;
+  listByTicketId(ticketId: string, limit?: number): Promise<RunContext[]>;
 }

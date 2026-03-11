@@ -80,6 +80,50 @@ describe("Gateway contract types", () => {
     expect(err.error).toBe("not_found");
   });
 
+  it("validates process request with memory context", () => {
+    const req: GatewayProcessRequest = {
+      workflow: "mislink",
+      ticket_id: "ENG-10423",
+      source: "slack",
+      context: {
+        memory: {
+          past_runs: [
+            {
+              run_id: "ENG-10423_abc123",
+              workflow: "mislink",
+              status: "pending_review",
+              created_at: 1710000000,
+            },
+          ],
+          has_history: true,
+        },
+      },
+    };
+    const memory = req.context?.memory as Record<string, unknown>;
+    expect(memory).toBeDefined();
+    expect(memory.has_history).toBe(true);
+    expect((memory.past_runs as unknown[]).length).toBe(1);
+  });
+
+  it("validates process request without context (backward compatible)", () => {
+    const req: GatewayProcessRequest = {
+      workflow: "dummy",
+      ticket_id: "SUPPORT-1",
+      source: "api",
+    };
+    expect(req.context).toBeUndefined();
+  });
+
+  it("validates process request with empty context", () => {
+    const req: GatewayProcessRequest = {
+      workflow: "dummy",
+      ticket_id: "SUPPORT-1",
+      source: "api",
+      context: {},
+    };
+    expect(req.context).toEqual({});
+  });
+
   it("discriminates success vs error via ok field", () => {
     const success: GatewayProcessResponse = {
       ok: true,
