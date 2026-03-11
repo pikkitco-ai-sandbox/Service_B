@@ -13,6 +13,16 @@ export interface GatewayProcessRequest {
   source: string;
   thread_id?: string;
   user_id?: string;
+  /**
+   * Optional metadata passed to the pipeline.
+   *
+   * Known keys:
+   * - `memory`: MemoryContext from src/lib/memory/context.ts
+   *   (past_runs, has_history). Backends treat this as supplementary;
+   *   their own JSONL memory is the primary cross-session store.
+   *
+   * Backends handle this being empty or absent (backward compatible).
+   */
   context?: Record<string, unknown>;
 }
 

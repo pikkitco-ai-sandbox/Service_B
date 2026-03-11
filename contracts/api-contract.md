@@ -52,7 +52,41 @@ Start a workflow (ticket processing or mislink resolution).
 | `source` | string | Yes | Where the request originated (`slack`, `api`, `webhook`) |
 | `thread_id` | string | No | Slack thread_ts or equivalent for threading replies |
 | `user_id` | string | No | Requesting user's ID |
-| `context` | object | No | Extra fields passed through to the pipeline |
+| `context` | object | No | Extra fields passed through to the pipeline (see below) |
+
+### Context Object
+
+The `context` field carries optional metadata from Service_B to the pipeline.
+Backends MUST handle `context` being empty or absent (backward compatible).
+
+```json
+{
+  "memory": {
+    "past_runs": [
+      {
+        "run_id": "ENG-10423_abc12345",
+        "workflow": "mislink",
+        "status": "pending_review",
+        "created_at": 1710000000
+      }
+    ],
+    "has_history": true
+  }
+}
+```
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `context.memory` | object or absent | Service_B's view of recent runs for this ticket |
+| `context.memory.past_runs` | RunSummary[] | Recent runs (newest first), max 5 |
+| `context.memory.past_runs[].run_id` | string | Run ID from a previous pipeline execution |
+| `context.memory.past_runs[].workflow` | string | `"dummy"` or `"mislink"` |
+| `context.memory.past_runs[].status` | string | Last known status |
+| `context.memory.past_runs[].created_at` | number | Unix timestamp (seconds) |
+| `context.memory.has_history` | boolean | `true` if any past runs exist |
+
+Backends use their own JSONL memory as the primary cross-session store.
+`context.memory` from Service_B is supplementary routing metadata only.
 
 ### Response (success)
 

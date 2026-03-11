@@ -20,4 +20,16 @@ export class MemoryStateAdapter implements StateAdapter {
   async delete(runId: string): Promise<void> {
     this.store.delete(runId);
   }
+
+  async listByTicketId(ticketId: string, limit = 5): Promise<RunContext[]> {
+    const matches: RunContext[] = [];
+    for (const ctx of this.store.values()) {
+      if (ctx.ticket_id === ticketId) {
+        matches.push(ctx);
+      }
+    }
+    return matches
+      .sort((a, b) => b.created_at - a.created_at)
+      .slice(0, limit);
+  }
 }

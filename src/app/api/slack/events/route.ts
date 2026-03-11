@@ -14,6 +14,7 @@ import { processTicket } from "@/lib/backend/client";
 import { getSlackClient } from "@/lib/slack/client";
 import { buildApprovalCard, buildErrorCard } from "@/lib/slack/blocks";
 import { getStateAdapter } from "@/lib/state";
+import { loadMemoryContext } from "@/lib/memory/context";
 import { logInfo, logWarn, logError } from "@/lib/log";
 import type { GatewayProcessResponse, GatewayErrorResponse } from "@/lib/contracts/gateway";
 
@@ -98,12 +99,17 @@ async function handleMention(event: Record<string, unknown>) {
     return;
   }
 
+  // Load memory context (recent runs for this ticket)
+  const state = getStateAdapter();
+  const memoryCtx = await loadMemoryContext(parsed.ticket_id, state);
+
   const result = await processTicket({
     workflow: parsed.workflow,
     ticket_id: parsed.ticket_id,
     source: "slack",
     thread_id: parsed.thread_ts,
     user_id: parsed.user_id,
+    context: memoryCtx.has_history ? { memory: memoryCtx } : undefined,
   });
 
   if (!result.ok) {
@@ -127,7 +133,6 @@ async function handleMention(event: Record<string, unknown>) {
   });
 
   // Save context so action handlers can route decisions
-  const state = getStateAdapter();
   await state.save(success.run_id, {
     run_id: success.run_id,
     workflow: success.workflow,
