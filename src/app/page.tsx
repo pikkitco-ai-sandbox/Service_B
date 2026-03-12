@@ -5,6 +5,8 @@ export default function Home() {
       <p>Bridges Slack events to Python backend orchestrators.</p>
       <p>
         <a href="/api/health">Health check</a>
+        {" · "}
+        <a href="/insights">Insights Dashboard</a>
       </p>
     </main>
   );
