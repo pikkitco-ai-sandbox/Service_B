@@ -45,6 +45,11 @@ src/
         events/route.ts         app_mention handler
         commands/route.ts       Slash command handler (/mislink, /support)
         interactions/route.ts   Button action handler (approve/reject/modify)
+    insights/
+      page.tsx                  Visualization dashboard (7 tabs, D3.js)
+  components/
+    charts/                     D3 visualization components
+    ui/                         Shared UI components (Tabs, etc.)
   lib/
     backend/
       client.ts                 HTTP client for Python backends

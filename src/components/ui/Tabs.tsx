@@ -18,7 +18,7 @@ export default function Tabs({ tabs, defaultTab }: Props) {
 
   return (
     <div>
-      <nav className="flex gap-1 border-b border-[var(--color-border)] mb-6">
+      <nav className="flex gap-1 border-b border-[var(--color-border)] mb-6 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}

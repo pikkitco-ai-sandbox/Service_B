@@ -35,6 +35,8 @@ calls and renders backend responses as interactive Slack cards.
 | Memory context middleware | [`src/lib/memory/context.ts`](src/lib/memory/context.ts) |
 | State adapters | [`src/lib/state/`](src/lib/state/) |
 | Tests | [`tests/`](tests/) |
+| Insights dashboard | [`src/app/insights/page.tsx`](src/app/insights/page.tsx) |
+| D3 chart components | [`src/components/charts/`](src/components/charts/) |
 | Architecture decisions | [`docs/adr/`](docs/adr/) |
 | Cross-repo docs | `kb/docs/` (submodule) |
 | Shared glossary | `kb/docs/glossary.md` (submodule) |
